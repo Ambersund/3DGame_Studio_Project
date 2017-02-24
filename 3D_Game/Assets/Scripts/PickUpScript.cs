@@ -5,11 +5,16 @@ using UnityEngine;
 public class PickUpScript : MonoBehaviour {
 
 	private bool hasPickup = false;
+
 	public Transform holdPoint;
 	public GameObject heldObject;
 
 	public Transform keyPoint;
 	public GameObject keyObject;
+
+	public Camera cam;
+
+	public float pickupDistance;
 
 	// Use this for initialization
 	void Start () {
@@ -18,39 +23,32 @@ public class PickUpScript : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-		if (heldObject != null) {
-			heldObject.transform.position = holdPoint.position;
-		}
 
-		if (Input.GetMouseButton (1) && heldObject != null) {
-			//Drop ();
+		//DEBUG RAYCAST
+		Ray pickupRay = new Ray(transform.position, cam.transform.forward);
+		RaycastHit pickupHit;
+
+		if (Physics.Raycast (pickupRay, out pickupHit, pickupDistance)) {
+			if (Input.GetMouseButton (0)) {
+				if (pickupHit.transform.gameObject.tag == "Pickup" && !hasPickup) {
+					//pick up object
+					Pickup(pickupHit.transform.gameObject);
+				}
+				if (hasPickup) {
+					//drop object
+					Drop(pickupHit.transform.gameObject);
+				}
+			}
 		}
 	}
-	void OnTriggerStay(Collider other){
-		if (Input.GetMouseButton(0) && other.tag == "Pick-up" && hasPickup == false) {
-			heldObject = other.gameObject;
-			Pickup ();
-		}
-		if (Input.GetMouseButton (1) && other.tag == "Key" && hasPickup == true && heldObject != null) {
-			keyObject = other.gameObject;
-			PlaceObject ();
-		}
-	}
 
-	void Pickup(){
+	void Pickup(GameObject _pickup){
 		Debug.Log ("PICKUP");
-		heldObject.GetComponent<Rigidbody> ().isKinematic = true;
-		heldObject.transform.parent = this.gameObject.transform;
-		hasPickup = true;
 	}
-	void Drop(){
-		hasPickup = false;
-		heldObject.transform.parent = null;
-		heldObject.GetComponent<Rigidbody> ().isKinematic = false;
-		heldObject = null;
+	void Drop(GameObject _pickup){
+		Debug.Log ("DROP");
 	}
-	void PlaceObject(){
-		Drop ();
-		keyObject.GetComponent<KeyCheck> ().DisableGate ();
+	void Place(GameObject _pickup){
+		Debug.Log ("PLACE");
 	}
 }

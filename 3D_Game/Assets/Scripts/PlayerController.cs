@@ -6,18 +6,20 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour {
 
 	public Camera cam;
-
 	Rigidbody rb;
 
 	Vector3 moveAmount;
 	Vector3 smoothMoveVelocity;
-	Vector3 gravityDirection = Vector3.up;
 	Vector3 tetherPoint;
+
+	Vector3 gravityDirection = Vector3.up;
+	Vector3 targetGravity = Vector3.up;
 
 	public float mouseSensitivityX = 1;
 	public float mouseSensitivityY = 1;
 	public float playerSpeed;
 	public float gravity = -9.8f;
+	public float shiftSpeed = 0;
 
 	public LayerMask groundedMask;
 
@@ -26,6 +28,7 @@ public class PlayerController : MonoBehaviour {
 	public bool grounded;
 	public bool isTethered = false;
 	public bool gravityOverride = false;
+	public bool onStairs = false;
 
 	void Awake(){
 
@@ -71,7 +74,11 @@ public class PlayerController : MonoBehaviour {
 		if (Physics.Raycast (groundRay, out groundHit, 1, groundedMask)) {
 			grounded = true;
 			if (gravityOverride == false) {
-				gravityDirection = groundHit.normal;
+				if (groundHit.transform.gameObject.tag == "Stairs") {
+					targetGravity = groundHit.transform.gameObject.GetComponent<StairGravity> ().stairGravity;
+				} else {
+					targetGravity = groundHit.normal;
+				}
 			}
 
 		}else{
@@ -84,7 +91,7 @@ public class PlayerController : MonoBehaviour {
 
 		if (Physics.Raycast (debugRay, out debugHit, 100)) {
 			if (Input.GetMouseButton (0)) {
-				Debug.Log (debugHit.normal);
+				//Debug.Log (debugHit.normal);
 			}
 		}
 	}
@@ -92,24 +99,31 @@ public class PlayerController : MonoBehaviour {
 	void FixedUpdate(){
 
 		//Gravity
-		ExertGravity();
+		ExertGravity(targetGravity);
 
 		//Movement
 		Vector3 localMove = transform.TransformDirection(moveAmount) * Time.fixedDeltaTime;
 		rb.MovePosition(rb.position + localMove);
 	}
 
+	//USED FOR PORTALS
 	public void ChangeGravity(Vector3 changeNormal){
 		gravityDirection = changeNormal;
 	}
 
-	void ExertGravity(){
+	void ExertGravity(Vector3 _targetGravity){
 		Vector3 localUp = rb.transform.up;
 
 		//if we are tethered to a sphere
 		if (isTethered) {
 			//sphere gravity
 			gravityDirection = (rb.position - tetherPoint).normalized;
+		}
+		if (gravityDirection != _targetGravity) {
+			gravityDirection  = Vector3.Lerp (gravityDirection, _targetGravity, shiftSpeed); 
+
+			Debug.Log ("TARGET: " + _targetGravity + ", CURRENT: " + gravityDirection);
+				
 		}
 
 		rb.AddForce (gravityDirection * gravity);
